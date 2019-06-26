@@ -3,6 +3,11 @@ package main
 import (
 	"fmt"
 	"strconv"
+
+	"strings"
+
+	"github.com/klauspost/reedsolomon"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -41,7 +46,9 @@ var (
 func main() {
 	var customer_max_digits int
 	var customer_max_chars int
-	input := "62303850760049DW9IL"
+	var customerMaxBars int
+
+	input := "5956439111ABA 9"
 	fcc, err := strconv.ParseInt(input[0:2], 10, 64)
 	if err != nil {
 		fmt.Print(err)
@@ -52,34 +59,87 @@ func main() {
 		fmt.Print(err)
 	}
 
-	fmt.Println(fcc, dpid)
-
 	switch fcc {
 	case BARCODE_TYPE_STANDARD:
 		customer_max_digits = 0
 		customer_max_chars = 0
+		customerMaxBars = 0
 	case BARCODE_TYPE_TWO:
 		customer_max_digits = 8
 		customer_max_chars = 5
+		customerMaxBars = 16
 	case BARCODE_TYPE_THREE:
 		customer_max_digits = 15
 		customer_max_chars = 10
+		customerMaxBars = 31
 	default:
 		fmt.Println("error, unknown fcc")
 	}
 
-	customer_info := input[10:]
-
-	_, err = strconv.ParseFloat(customer_info, 64)
+	customerInfo := input[10:]
+	encodeTable := C_ENCODING_TABLE
+	_, err = strconv.ParseFloat(customerInfo, 64)
 	if err == nil {
-		if len(customer_info) > customer_max_digits {
+		if len(customerInfo) > customer_max_digits {
 			fmt.Println("error lenght for digits")
 		}
+		encodeTable = N_ENCODING_TABLE
 	} else {
-		if len(customer_info) > customer_max_chars {
+		if len(customerInfo) > customer_max_chars {
 			fmt.Println("error lenght for chars")
 		}
 	}
 
-	fmt.Println(fcc, dpid, customer_info)
+	charPosition := func(value byte, array []byte) (int, error) {
+		for i := 0; i < len(array); i++ {
+			if value == array[i] {
+				return i, nil
+			}
+		}
+
+		return 0, errors.New("Unable to find character " + string(value) + " in character array.")
+	}
+
+	encodeString := func(s string, encodeTable []string) (r string) {
+		for i := 0; i < len(s); i++ {
+			p, err := charPosition(byte(s[i]), CHARACTER_SET)
+			if err != nil {
+				fmt.Println(err)
+			}
+			r += encodeTable[p]
+		}
+		return
+	}
+
+	var customerInfoEncoded string
+	fccEncoded := encodeString(strconv.FormatInt(fcc, 10), N_ENCODING_TABLE)
+	dpidEncoded := encodeString(strconv.FormatInt(dpid, 10), N_ENCODING_TABLE)
+
+	if len(customerInfo) > 0 {
+		customerInfoEncoded = encodeString(customerInfo, encodeTable)
+		customerInfoEncoded += strings.Repeat("3", customerMaxBars-len(customerInfoEncoded))
+	}
+
+	encodedValues := fccEncoded + dpidEncoded + customerInfoEncoded
+	triples := []uint8{}
+
+	for i := 0; i < len(encodedValues); i += 3 {
+		triple := encodedValues[i : i+3]
+		first := (triple[0] - '0') << 4
+		second := (triple[1] - '0') << 2
+		third := triple[2] - '0'
+
+		value := first + second + third
+		triples = append(triples, value)
+	}
+
+	//bs := []byte(strconv.Itoa(27))
+
+	enc, err := reedsolomon.New(len(triples), 4)
+	shards, err := enc.Split(triples)
+	fmt.Printf("File split into %d data+parity shards with %d bytes/shard.\n", len(shards), len(shards[0]))
+	err = enc.Encode(shards)
+	ok, err := enc.Verify(shards)
+	fmt.Println(ok, err)
+	fmt.Println(shards[14])
 }
