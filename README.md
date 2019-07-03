@@ -1,19 +1,20 @@
-# Australia Post 4 state barcode
-This is a minimalistic library written in golang that generates the 4 state barcode used by Australia Post
+# Australia Post 4-state barcode
+This is a minimalistic library written in golang that generates the 4-state barcode used by Australia Post
 ![Australia Post barcode](./examples/barcode.png)
 
 ## Why
-The main reason I've written this library is because couldn't find anything that would satisfy following criterias:
-* small binary that can be run from a lambda function.
-* simple to understand code with minimum functionality and configuration options
+The main reason I've written this library is because couldn't find anything that would satisfy the following criterias:
+* a small binary that can be run from a lambda function.
+* simple to understand code with the minimum functionality and configuration options
 * generates barcode as SVG file
 
-4-state-barcode library does only one thing &mdash; generates a 4 state barcode as SVG file. 
-Additionally, it allows to pass a barcode optional text and change a few configuration options.
+4-state-barcode library does only one thing &mdash; generates a 4 state barcode as SVG file.
+ 
+Additionally, it allows to pass an optional text and change a few configuration options.
 The guidelines how to generate 4 state barcode required by Australia Post are taken from [customer-barcode-technical-specifications-aug2012.pdf](https://auspost.com.au/.../customer-barcode-technical-specifications-aug2012.pdf) file.
 
 ## Usage
-The library can used using three different ways.
+The library can used in three different ways.
 ### As code
 ```go
 package main
@@ -34,7 +35,7 @@ func main()  {
 }
 ```
 
-There are several optional configuration options available:
+There are several optional configuration functions available:
 * `OptionPadding(padding int) option`
 * `OptionLogger(logger Logger) option`
 * `OptionRatio(ratio int) option`
