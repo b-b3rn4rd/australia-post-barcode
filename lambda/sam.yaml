@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: 'prod'
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler
+      Tracing: Active
+      Runtime: go1.x
+      CodeUri: ./handler.zip
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+      Events:
+        HttpPost:
+          Type: Api
+          Properties:
+            Path: '/'
+            RestApiId: !Ref Api
+            Method: get
