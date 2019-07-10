@@ -15,5 +15,5 @@ deploy: package
 	aws cloudformation deploy \
 		--template-file sam.out.yaml \
 		--capabilities CAPABILITY_IAM \
-		--stack-name 4-state-barcode-api
+		--stack-name four-state-barcode-api
 .PHONY: deploy

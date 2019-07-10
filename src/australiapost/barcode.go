@@ -54,15 +54,18 @@ const (
 	barcodeTypeThree              int64  = 62
 	barcodeDefaultFontSize        int    = 10
 	barcodeDefaultPadding         int    = 6
+	barcodeBarWidth               int    = 3
 	barcodeDefaultFontColor       string = "black"
 	barcodeDefaultBackgroundColor string = "white"
 	barcodeDefaultFont            string = "Courier"
 )
 
+// Barcode generic barcode interface
 type Barcode interface {
 	Generate() error
 }
 
+// Logger logger interface
 type Logger interface {
 	Printf(string, ...interface{})
 }
@@ -76,62 +79,80 @@ type fourStateBarcode struct {
 	padding         int
 	fontSize        int
 	barRatio        int
+	barWidth        int
 	backgroundColor string
 	fontColor       string
 }
 
-type option func(b *fourStateBarcode)
+// Option barcode option function
+type Option func(b *fourStateBarcode)
 
-func OptionPadding(padding int) option {
+// OptionPadding set barcode padding Option
+func OptionPadding(padding int) Option {
 	return func(b *fourStateBarcode) {
 		b.padding = padding
 	}
 }
 
-func OptionLogger(logger Logger) option {
+// OptionLogger set barcode logger Option
+func OptionLogger(logger Logger) Option {
 	return func(b *fourStateBarcode) {
 		b.logger = logger
 	}
 }
 
-func OptionRatio(ratio int) option {
+// OptionRatio set barcode ratio Option
+func OptionRatio(ratio int) Option {
 	return func(b *fourStateBarcode) {
 		b.barRatio = ratio
 	}
 }
 
-func OptionFontSize(fontSize int) option {
+// OptionBarWidth set barcode bar width Option
+func OptionBarWidth(width int) Option {
+	return func(b *fourStateBarcode) {
+		b.barWidth = width
+	}
+}
+
+// OptionFontSize set barcode font size Option
+func OptionFontSize(fontSize int) Option {
 	return func(b *fourStateBarcode) {
 		b.fontSize = fontSize
 	}
 }
 
-func OptionBackgroundColor(color string) option {
+// OptionBackgroundColor set barcode background color Option
+func OptionBackgroundColor(color string) Option {
 	return func(b *fourStateBarcode) {
 		b.backgroundColor = color
 	}
 }
 
-func OptionFontColor(color string) option {
+// OptionFontColor set barcode font color Option
+func OptionFontColor(color string) Option {
 	return func(b *fourStateBarcode) {
 		b.fontColor = color
 	}
 }
 
-func OptionalEncoder(encoder Encoder) option {
+// OptionalEncoder set barcode custom encoder Option
+func OptionalEncoder(encoder Encoder) Option {
 	return func(b *fourStateBarcode) {
 		b.encoder = encoder
 	}
 }
 
-func NewFourStateBarcode(input string, wr io.Writer, text string, options ...option) Barcode {
+// NewFourStateBarcode create a new FourStateBarcode struct
+func NewFourStateBarcode(input string, wr io.Writer, text string, options ...Option) Barcode {
 	barcode := &fourStateBarcode{
 		input:           input,
 		wr:              wr,
 		text:            text,
 		padding:         barcodeDefaultPadding,
 		fontSize:        barcodeDefaultFontSize,
-		barRatio:        2,
+		barRatio:        1,
+		barWidth:        barcodeBarWidth,
 		encoder:         NewReedSolomon(),
 		backgroundColor: barcodeDefaultBackgroundColor,
 		fontColor:       barcodeDefaultFontColor,
@@ -143,11 +164,18 @@ func NewFourStateBarcode(input string, wr io.Writer, text string, options ...opt
 
 	return barcode
 }
+
+// Generate generate barcode
+// nolint: gocyclo
 func (b *fourStateBarcode) Generate() error {
 	var customerMaxDigits int
 	var customerMaxChars int
 	var customerMaxBars int
 	var mandatoryFillers int
+
+	if len(b.input) < 10 {
+		return errors.Errorf("the minimum barcode length is 10 characters %d given", len(b.input))
+	}
 
 	fcc, err := strconv.ParseInt(b.input[0:2], 10, 64)
 	if err != nil {
@@ -207,7 +235,7 @@ func (b *fourStateBarcode) Generate() error {
 
 	encodeString := func(s string, encodeTable []string) (r string, err error) {
 		for i := 0; i < len(s); i++ {
-			p, err := charPosition(byte(s[i]), characterSet)
+			p, err := charPosition(s[i], characterSet)
 			if err != nil {
 				return "", errors.Wrap(err, "error while doing a byte lookup")
 			}
@@ -233,10 +261,9 @@ func (b *fourStateBarcode) Generate() error {
 		if err != nil {
 			return errors.Wrap(err, "error while encoding customer information field")
 		}
-
-		customerInfoEncoded += strings.Repeat("3", customerMaxBars-len(customerInfoEncoded))
 	}
 
+	customerInfoEncoded += strings.Repeat("3", customerMaxBars-len(customerInfoEncoded))
 	customerInfoEncoded += strings.Repeat("3", mandatoryFillers)
 
 	encodedValues := fccEncoded + dpidEncoded + customerInfoEncoded
@@ -270,14 +297,14 @@ func (b *fourStateBarcode) Generate() error {
 
 	switch fcc {
 	case barcodeTypeStandard:
-		barcodeWidth = 146
-		barcodeHeight = 8*b.barRatio + b.padding + b.padding + textHeight
+		barcodeWidth = 73 * b.barWidth
+		barcodeHeight = 24*b.barRatio + b.padding + b.padding + textHeight
 	case barcodeTypeTwo:
-		barcodeWidth = 206
-		barcodeHeight = 8*b.barRatio + b.padding + b.padding + textHeight
+		barcodeWidth = 103 * b.barWidth
+		barcodeHeight = 24*b.barRatio + b.padding + b.padding + textHeight
 	case barcodeTypeThree:
-		barcodeWidth = 266
-		barcodeHeight = 8*b.barRatio + b.padding + b.padding + textHeight
+		barcodeWidth = 133 * b.barWidth
+		barcodeHeight = 24*b.barRatio + b.padding + b.padding + textHeight
 	}
 
 	b.draw(encodedValues, barcodeWidth, barcodeHeight, textHeight)
@@ -285,12 +312,12 @@ func (b *fourStateBarcode) Generate() error {
 	return nil
 }
 
-func (b *fourStateBarcode) draw(encodedValues string, barcodeWidth int, barcodeHeight int, textHeight int) error {
+func (b *fourStateBarcode) draw(encodedValues string, barcodeWidth int, barcodeHeight int, textHeight int) {
 	var barWidth, barHeight, barXpos, barYpos int
 
 	canvas := svg.New(b.wr)
 	canvas.Start(barcodeWidth, barcodeHeight)
-	barWidth = 2
+	barWidth = b.barWidth
 	barXpos = 0
 	canvas.Rect(0, 0, barcodeWidth, barcodeHeight, fmt.Sprintf("fill:%s", b.backgroundColor))
 
@@ -298,16 +325,16 @@ func (b *fourStateBarcode) draw(encodedValues string, barcodeWidth int, barcodeH
 		switch string(encodedValues[i]) {
 		case "0":
 			barYpos = 0
-			barHeight = 8
+			barHeight = 24
 		case "1":
 			barYpos = 0
-			barHeight = 5
+			barHeight = 16
 		case "2":
-			barYpos = 3
-			barHeight = 5
+			barYpos = 8
+			barHeight = 16
 		case "3":
-			barYpos = 3
-			barHeight = 2
+			barYpos = 8
+			barHeight = 8
 		}
 
 		canvas.Roundrect(barXpos,
@@ -328,6 +355,4 @@ func (b *fourStateBarcode) draw(encodedValues string, barcodeWidth int, barcodeH
 	}
 
 	canvas.End()
-
-	return nil
 }

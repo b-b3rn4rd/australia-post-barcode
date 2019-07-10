@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	// Version application version, set using ldflags
 	Version = "undefined"
 )
 

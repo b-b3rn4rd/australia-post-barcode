@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Australia Post - 4 State Barcode Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <style type="text/css">
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px; /* Set the fixed height of the footer here */
+            background-color: #f5f5f5;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container" role="main">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div class="page-header">
+                <h1>
+                    AUSTRALIA POST 4 STATE BARCODE<small></small>
+                </h1>
+                </div>
+                <p id="barcode" class="text-center"></p>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><span class="glyphicon glyphicon-barcode"></span> Barcode Generator</h3>
+                    </div>
+                    <div class="panel-body">
+                        <p id="form-error" class="text-capitalize alert alert-danger"></p>
+
+
+                            <form id="generate-form" class="form-horizontal">
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label" for="barcode_type">Barcode Type</label>
+                                    <div class="col-sm-2">
+                                        <select class="form-control" id="barcode_type">
+                                            <option value="11">11</option>
+                                            <option value="59">59</option>
+                                            <option value="62">62</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label" for="dpip">DPID</label>
+                                    <div class="col-sm-3">
+                                        <div class="input-group">
+                                            <div class="input-group-addon"><span class="glyphicon glyphicon-home"></span></div>
+                                            <input class="form-control" type="text" maxlength="8" id="dpip"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label" for="customer_info">Customer Information (Optional)</label>
+                                    <div class="col-sm-4">
+                                        <div class="input-group">
+                                            <div class="input-group-addon"><span class="glyphicon glyphicon-tag"></span></div>
+                                            <input class="form-control" type="text" maxlength="15"  id="customer_info"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-3 control-label" for="banner_text">Barcode Text (Optional)</label>
+                                    <div class="col-sm-4">
+                                        <input class="form-control" id="banner_text"/>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="col-sm-offset-3 col-sm-9">
+                                        <button type="submit" id="generate" class="btn btn-default">Generate</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="footer">
+        <div class="container">
+            <div class="col-md-8 col-md-offset-2">
+                <p class="text-muted text-center" style="padding:15px;">
+                    <span class="glyphicon glyphicon-envelope" aria-hidden="true"></span> <a href="mailto:bernard@runawaylover.info">Questions ?</a>&nbsp;|&nbsp;
+                    <span class="glyphicon glyphicon-download" aria-hidden="true"></span> <a href="https://github.com/b-b3rn4rd/australia-post-barcode">github</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+    <script
+            src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            var resetForm = function() {
+                $('#form-error').html("").hide();
+                $('#barcode').html("").hide();
+            }
+            resetForm();
+            $('#generate-form').submit(function () {
+                event.preventDefault();
+                resetForm();
+
+                var type = $("#barcode_type").val();
+                var dpip = $("#dpip").val();
+                var customerInfo = $("#customer_info").val();
+                var barcode = type + dpip + customerInfo
+                var text = $("#banner_text").val();
+
+                if (dpip.length != 8) {
+                    $('#form-error').text('DPID field must be exactly 8 digits long');
+                    $('#form-error').show();
+                    return;
+                }
+
+                $.ajax({
+                    type: "GET",
+                    url: "https://0tqfil7kbc.execute-api.ap-southeast-2.amazonaws.com/prod",
+                    data: "barcode="+barcode+"&text="+ text,
+                    success: function(data){
+                        $('#barcode').html('<img src="data:image/svg+xml;base64,'+data+'" />');
+                        $('#barcode').show();
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        var errorMessage = jqXHR.responseText;
+                        var err = jQuery.parseJSON(errorMessage);
+                        $('#form-error').text(err.error);
+                        $('#form-error').show();
+                    }
+                });
+                return false;
+            });
+        })
+
+    </script>
+</body>
+</html>

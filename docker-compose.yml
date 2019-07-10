@@ -1,0 +1,15 @@
+version: "3.4"
+services:
+  barcode:
+    container_name: 4-state-barcode-${IMAGE_TAG}
+    image: bernard/4-state-barcode:${IMAGE_TAG}
+    build:
+      dockerfile: Dockerfile
+      context: .
+      args:
+        IMAGE_TAG: ${IMAGE_TAG}
+    networks:
+      - cicd
+networks:
+  cicd:
+    driver: "bridge"

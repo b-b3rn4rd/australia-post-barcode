@@ -2,6 +2,7 @@
 .idea/
 .DS_Store
 vendor/
-./lambda/handler
-./lambda/sam.out.yaml
-./lambda/handler.zip
+lambda/handler
+lambda/sam.out.yaml
+lambda/handler.zip
+release*.zip

@@ -2,6 +2,7 @@ BUILD_ID ?= 1
 BUILD_SHA1 = $(shell git rev-parse --short=7 --verify HEAD)
 BUILD_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 REPOSITORY ?= bernard/4-state-barcode
+GITHUB_REPOSITORY ?= b-b3rn4rd/australia-post-barcode
 MAJOR ?= 1
 MINOR ?= 0
 ifeq ($(BUILD_BRANCH),master)
@@ -18,17 +19,21 @@ ci: push
 clean:
 	REPOSITORY=$(REPOSITORY) \
 	IMAGE_TAG=$(IMAGE_TAG) \
-	BUILD_SHA1=$(BUILD_SHA1) \
-    docker-compose --project-name app down || true
+	docker-compose --project-name barcode down || true
 .PHONY: clean
 
 build: clean
 	REPOSITORY=$(REPOSITORY) \
 	IMAGE_TAG=$(IMAGE_TAG) \
-	BUILD_SHA1=$(BUILD_SHA1) \
-	docker-compose --project-name app up --detach
-	E=$$(docker wait sut-$(IMAGE_TAG)) && exit $$E
+	docker-compose --project-name barcode up
+	docker cp 4-state-barcode-${IMAGE_TAG}:/tmp/release.zip .
 
+	@curl -s \
+		--data-binary @release.zip  \
+		-H "Content-Type: application/zip" \
+		"https://uploads.github.com/repos/$(GITHUB_REPOSITORY)/releases/$$(curl -s \
+			--data "{\"tag_name\": \"$(IMAGE_TAG)\"}" \
+			"https://api.github.com/repos/$(GITHUB_REPOSITORY)/releases?access_token=${GITHUB_TOKEN}" | jq '.id')/assets?name=release-$(IMAGE_TAG).zip&access_token=${GITHUB_TOKEN}"
 	@echo successfully built docker image
 .PHONY: build
 
@@ -37,8 +42,7 @@ push: build
 
 	REPOSITORY=$(REPOSITORY) \
 	IMAGE_TAG=$(IMAGE_TAG) \
-	BUILD_SHA1=$(BUILD_SHA1) \
-	docker-compose --project-name app push app
+	docker-compose --project-name barcode push barcode
 .PHONY: push
 
 latest:

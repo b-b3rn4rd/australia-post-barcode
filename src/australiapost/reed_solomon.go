@@ -1,5 +1,6 @@
 package australiapost
 
+// Encoder generic encoder interface
 type Encoder interface {
 	Encode(data []uint) []uint
 }
@@ -12,6 +13,7 @@ type reedSolomon struct {
 	gf          uint
 }
 
+// NewReedSolomon create a new instance of Reed Solomon
 func NewReedSolomon() Encoder {
 	return &reedSolomon{
 		log: []uint{
@@ -40,6 +42,7 @@ func NewReedSolomon() Encoder {
 	}
 }
 
+// Encode encode data using Reed Solomon
 func (r *reedSolomon) Encode(data []uint) []uint {
 	var i, k, m, l uint
 
