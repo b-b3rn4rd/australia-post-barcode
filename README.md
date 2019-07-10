@@ -2,6 +2,10 @@
 This is a minimalistic library written in golang that generates the 4-state barcode used by Australia Post
 ![Australia Post barcode](./examples/barcode.png)
 
+## Live Demo
+
+Click [here](http://4-state-barcode.com.au.s3-website-ap-southeast-2.amazonaws.com/) to try the 4-state barcode generation online
+
 ## Why
 The main reason I've written this library is because couldn't find anything that would satisfy the following criterias:
 * a small binary that can be run from a lambda function.
@@ -80,7 +84,7 @@ func main()  {
 }
 ```
 
-###As CLI
+### As CLI
 Download the latest release and run a suitable executable file
 
 ```bash
