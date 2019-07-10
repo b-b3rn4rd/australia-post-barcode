@@ -1,0 +1,22 @@
+sudo: required
+
+services:
+  - docker
+
+env:
+  - DOCKER_COMPOSE_VERSION=1.22.0
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
+script:
+  - DOCKER_CONTENT_TRUST=1 BUILD_ID=$TRAVIS_BUILD_NUMBER BUILD_BRANCH=$TRAVIS_BRANCH make
+
+deploy:
+  provider: script
+  script: BUILD_ID=$TRAVIS_BUILD_NUMBER BUILD_BRANCH=$TRAVIS_BRANCH make latest
+  on:
+    branch: master
