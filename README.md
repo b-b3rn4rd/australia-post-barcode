@@ -1,4 +1,7 @@
 # Australia Post 4-state barcode
+[![Build Status](https://travis-ci.org/b-b3rn4rd/australia-post-barcode.svg?branch=master)](https://travis-ci.org/b-b3rn4rd/australia-post-barcode) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/b-b3rn4rd/australia-post-barcode)](https://goreportcard.com/report/github.com/b-b3rn4rd/australia-post-barcode)
+
 This is a minimalistic library written in golang that generates the 4-state barcode used by Australia Post
 ![Australia Post barcode](./examples/barcode.png)
 
